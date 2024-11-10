@@ -1,13 +1,20 @@
 /*
 Copyright © 2024 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
 import (
+	twitchapi "chat-embedder/twitch-api"
 	"fmt"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"sync"
+	"time"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/rand"
 )
 
 // ttvCmd represents the ttv command
@@ -20,21 +27,68 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("ttv called")
-	},
+	Run: rateIt,
+}
+
+func rateIt(cmd *cobra.Command, args []string) {
+	userID, err := ttvClient.GetUserID(username)
+	if err != nil {
+		color.Red("username not found")
+	}
+
+	vods, err := ttvClient.GetVideoIDs(userID, twitchapi.TIME_PERIOD(period))
+	if err != nil {
+		color.Red("couldnt get VOD IDs :(")
+	}
+	var vodIDs []string
+	var wg sync.WaitGroup
+	for _, vod := range vods {
+		vodIDs = append(vodIDs, vod.ID)
+	}
+
+	for _, vodID := range vodIDs {
+		wg.Add(1)
+		go writeToJSON(vodID, &wg)
+	}
+	wg.Wait()
+	fmt.Println("Its done check the output file")
+
 }
 
 func init() {
 	rootCmd.AddCommand(ttvCmd)
 
-	// Here you will define your flags and configuration settings.
+}
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// ttvCmd.PersistentFlags().String("foo", "", "A help for foo")
+func writeToJSON(vodID string, wg *sync.WaitGroup) {
+	defer wg.Done()
 
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// ttvCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	mutex.Lock()
+	fileCount++
+	randomNumber := fileCount
+	mutex.Unlock()
+
+	const (
+		TTV_DOWNLOADER = "./TwitchDownloaderCLI"
+		TTV_FEATURE    = "chatdownload"
+		EMBED_IMGS     = "--embed-images"
+		IS_BTTV        = "--bttv=true"
+		FFZ_ARG        = "--ffz=false"
+		STV_ARG        = "--stv=true"
+		OUTPUT_PATH    = "-o"
+	)
+	rand.Seed(uint64(time.Now().UnixNano()))
+	ext := filepath.Ext(fileOutput)
+	rawFileName := strings.TrimSuffix(fileOutput, ext)
+	cmd := exec.Command(TTV_DOWNLOADER, TTV_FEATURE, "--id", vodID, OUTPUT_PATH, fmt.Sprintf("%s-%d%s", rawFileName, randomNumber, ext), "--collision", "Overwrite")
+
+	stdout, err := cmd.CombinedOutput()
+
+	if err != nil {
+		fmt.Printf("Execution error: %v\nOutput: %s\n", err, string(stdout))
+		return
+	}
+
+	fmt.Println("Executed successfully")
+	fmt.Println(string(stdout))
 }

@@ -78,8 +78,22 @@ func getFileType(filePath string) FILE_TYPE {
 	}
 }
 
-func (t *TwitchApi) GetVideoIDs(userID string, timePeriod TIME_PERIOD) (*TwitchResponse[TwitchVOD], error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/videos?user_id=%s&period=%s", t.EndPoint, userID, timePeriod), nil)
+func getTimePeriod(period TIME_PERIOD) uint {
+	switch period {
+	case "week":
+		return 7
+	case "month":
+		return 28
+	case "day":
+		return 1
+	default:
+		return 100
+	}
+}
+
+func (t *TwitchApi) GetVideoIDs(userID string, timePeriod TIME_PERIOD) ([]TwitchVOD, error) {
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/videos?user_id=%s&period=%s&first=%d", t.EndPoint, userID, timePeriod, getTimePeriod(timePeriod)), nil)
 
 	if err != nil {
 		return nil, err
@@ -108,7 +122,7 @@ func (t *TwitchApi) GetVideoIDs(userID string, timePeriod TIME_PERIOD) (*TwitchR
 		return nil, err
 	}
 
-	return &VODs, nil
+	return VODs.Data, nil
 }
 
 // we marshalling and unmarshalling one more time for no reason but i wanna follow some nice code practice
@@ -125,7 +139,7 @@ func (t *TwitchApi) WriteVideoID(userID string, timePeriod string, filePath stri
 		if err != nil {
 			return fmt.Errorf("failed to get video IDs: %v", err)
 		}
-		data := []byte("Video IDs: " + fmt.Sprintf("%v", vods.Data))
+		data := []byte("Video IDs: " + fmt.Sprintf("%v", vods))
 		_, err = file.Write(data)
 		if err != nil {
 			return fmt.Errorf("failed to write data to file: %v", err)
@@ -182,4 +196,8 @@ func (t *TwitchApi) GetUserID(username string) (string, error) {
 	}
 
 	return TwitchUser.Data[0].ID, nil
+}
+
+func (t *TwitchApi) GetViewersChat(vodID string) {
+
 }

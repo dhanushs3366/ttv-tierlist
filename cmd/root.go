@@ -7,15 +7,19 @@ import (
 	twitchapi "chat-embedder/twitch-api"
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 )
 
 var (
-	username  string
-	period    string
-	ttvClient *twitchapi.TwitchApi
+	username   string
+	period     string
+	ttvClient  *twitchapi.TwitchApi
+	fileOutput string
+	fileCount  uint = 0
+	mutex      sync.Mutex
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -48,7 +52,10 @@ func init() {
 	godotenv.Load()
 	ttvClient = twitchapi.Init()
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	rootCmd.AddCommand(ttvTierListCmd)
+	rootCmd.AddCommand(ttvCmd)
+	rootCmd.AddCommand(testCmd)
 	testCmd.Flags().StringVarP(&username, "username", "u", "minicake", "uhmm pass in ur twitch username it will print out their top viewers")
-
+	ttvCmd.Flags().StringVarP(&username, "username", "u", "minicake", "uhmm pass in ur twitch username it will print out their top viewers")
+	ttvCmd.Flags().StringVarP(&period, "period", "p", "week", "uhmmm this for the # of week u wanna analayze")
+	ttvCmd.Flags().StringVarP(&fileOutput, "output", "o", fmt.Sprintf("%s.json", period), "uhm for the output ig")
 }

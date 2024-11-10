@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
 
 	"github.com/fatih/color"
@@ -15,6 +16,16 @@ var (
 	totalComments VodComments
 )
 
+type Pair struct {
+	Key    string
+	Value  uint
+	UserID string
+}
+
+type CommentCount struct {
+	UserID string
+	Count  uint
+}
 type VodComments struct {
 	Streamer struct {
 		Name string `json:"name"`
@@ -97,6 +108,25 @@ func Temp() {
 
 	wg.Wait()
 	Test(&totalComments)
+
+	frequencyMap := make(map[string]CommentCount)
+
+	for _, comment := range totalComments.Comments {
+		_, exists := frequencyMap[comment.Commenter.DisplayName]
+
+		if exists {
+			cmtCount := frequencyMap[comment.Commenter.DisplayName]
+			cmtCount.Count++
+			frequencyMap[comment.Commenter.DisplayName] = cmtCount
+			continue
+		}
+
+		frequencyMap[comment.Commenter.DisplayName] = CommentCount{UserID: comment.Commenter.ID, Count: 1}
+	}
+
+	sortedCmtByCount := rankByWordCount(frequencyMap)
+
+	fmt.Println(sortedCmtByCount[:50])
 }
 
 func readJSONComments(path string, wg *sync.WaitGroup) {
@@ -120,4 +150,20 @@ func readJSONComments(path string, wg *sync.WaitGroup) {
 	totalComments.Comments = append(totalComments.Comments, currentComment.Comments...)
 	mutex.Unlock()
 
+}
+
+// return an array of hashmap sorted by descending order in a slice
+func rankByWordCount(frequencyMap map[string]CommentCount) []Pair {
+	sortedSlice := make([]Pair, len(frequencyMap))
+	i := 0
+	for key, val := range frequencyMap {
+		sortedSlice[i] = Pair{Key: key, Value: val.Count, UserID: val.UserID}
+		i++
+	}
+
+	sort.Slice(sortedSlice, func(i, j int) bool {
+		return sortedSlice[i].Value > sortedSlice[j].Value
+	})
+
+	return sortedSlice
 }

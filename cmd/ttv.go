@@ -10,11 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
-	"golang.org/x/exp/rand"
 )
 
 // ttvCmd represents the ttv command
@@ -77,7 +75,6 @@ func writeToJSON(vodID string, wg *sync.WaitGroup) {
 		STV_ARG        = "--stv=true"
 		OUTPUT_PATH    = "-o"
 	)
-	rand.Seed(uint64(time.Now().UnixNano()))
 	ext := filepath.Ext(fileOutput)
 	rawFileName := strings.TrimSuffix(fileOutput, ext)
 	cmd := exec.Command(TTV_DOWNLOADER, TTV_FEATURE, "--id", vodID, OUTPUT_PATH, fmt.Sprintf("%s-%d%s", rawFileName, randomNumber, ext), "--collision", "Overwrite")

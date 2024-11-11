@@ -7,6 +7,7 @@ import (
 	twitchapi "chat-embedder/twitch-api"
 	"chat-embedder/utils"
 	"fmt"
+	"path/filepath"
 	"sync"
 
 	"github.com/spf13/cobra"
@@ -22,16 +23,15 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: Test,
+	Run: func(cmd *cobra.Command, args []string) {
+		rateIt(cmd, args)
+		Rank(cmd, args)
+	},
 }
 
-func Test(cmd *cobra.Command, args []string) {
-	// err := ttvCmd.Execute()
-	// if err != nil {
-	// 	color.Red("Error trying to execute ttv cmd %s", err.Error())
-	// }
+func Rank(cmd *cobra.Command, args []string) {
 
-	rankedUsers := utils.RankViewers(rankLimit)
+	rankedUsers := utils.RankViewers(rankLimit, filepath.Dir(fileOutput))
 	userDetails := make(chan twitchapi.TwitchUser, len(rankedUsers))
 	fmt.Println(len(rankedUsers))
 	var wg sync.WaitGroup

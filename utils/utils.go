@@ -1,8 +1,11 @@
 package utils
 
 import (
+	twitchapi "chat-embedder/twitch-api"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -71,32 +74,8 @@ func getJSONFiles(dir string) ([]string, error) {
 	return jsonFiles, nil
 }
 
-func Test(temp *VodComments) {
-
-	fmt.Println("Size of comments: ", len(temp.Comments))
-	modCount := 0
-	vipCount := 0
-	subCount := 0
-	for _, comment := range temp.Comments {
-		if len(comment.Message.UserBadges) == 0 {
-			continue
-		}
-		if comment.Message.UserBadges[0].ID == "vip" {
-			vipCount++
-		}
-		if comment.Message.UserBadges[0].ID == "moderator" {
-			modCount++
-		}
-		if comment.Message.UserBadges[0].ID == "subscriber" {
-			subCount++
-		}
-
-	}
-	fmt.Printf("Total\nvips: %d\tmods: %d\t subs: %d\n", vipCount, modCount, subCount)
-}
-
-func RankViewers(rankLimit uint) []Pair {
-	jsonFiles, err := getJSONFiles("./output")
+func RankViewers(rankLimit uint, srcDir string) []Pair {
+	jsonFiles, err := getJSONFiles(srcDir)
 	if err != nil {
 		color.Red("there are no json files")
 		return nil
@@ -140,7 +119,7 @@ func readJSONComments(path string, wg *sync.WaitGroup) {
 	var currentComment VodComments
 	err = json.Unmarshal(body, &currentComment)
 	if err != nil {
-		fmt.Printf("Error unmarshalling vod comment %s", err.Error())
+		fmt.Printf("Error unmarshalling vod comment %s\n", err.Error())
 		return
 	}
 	mutex.Lock()
@@ -166,4 +145,30 @@ func rankByWordCount(frequencyMap map[string]CommentCount) []Pair {
 	})
 
 	return sortedSlice
+}
+
+func CreateUserProfiles(user twitchapi.TwitchUser, wg *sync.WaitGroup, targetDir string) {
+	profileURL := user.ProfileImageURL
+	fileName := fmt.Sprintf("%s.png", user.DisplayName)
+
+	resp, err := http.Get(profileURL)
+	if err != nil {
+		fmt.Printf("Couldnt fetch %s pfp %s", user.DisplayName, err.Error())
+	}
+
+	defer resp.Body.Close()
+	filePath := filepath.Join(targetDir, fileName)
+	file, err := os.Create(filePath)
+
+	if err != nil {
+		fmt.Printf("Couldnt create %s in target dir %s\n%s", fileName, targetDir, err.Error())
+	}
+
+	defer file.Close()
+
+	_, err = io.Copy(file, resp.Body)
+
+	if err != nil {
+		fmt.Printf("Error copying image buffer into the destination file %s", err.Error())
+	}
 }

@@ -63,8 +63,8 @@ func init() {
 	ttvCmd.Flags().StringVarP(&fileOutput, "output", "o", fmt.Sprintf("%s.json", period), "uhm for the output ig")
 	// add a rank command
 
-	// rankCmd.Flags().StringVarP(&username, "username", "u", "minicake", "uhmm pass in ur twitch username it will print out their top viewers")
-	// rankCmd.Flags().StringVarP(&period, "period", "p", "week", "uhmmm this for the # of week u wanna analayze")
-	// rankCmd.Flags().StringVarP(&fileOutput, "output", "o", fmt.Sprintf("%s.json", period), "uhm for the output ig")
+	rankCmd.Flags().StringVarP(&username, "username", "u", "minicake", "uhmm pass in ur twitch username it will print out their top viewers")
+	rankCmd.Flags().StringVarP(&period, "period", "p", "week", "uhmmm this for the # of week u wanna analayze")
+	rankCmd.Flags().StringVarP(&fileOutput, "output", "o", fmt.Sprintf("%s.json", period), "uhm for the output ig")
 	rankCmd.Flags().UintVarP(&rankLimit, "limit", "l", 25, "set the limit for viewers default is 25")
 }

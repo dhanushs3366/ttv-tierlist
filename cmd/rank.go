@@ -16,13 +16,11 @@ import (
 // rankCmd represents the rank command
 var rankCmd = &cobra.Command{
 	Use:   "rank",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "rank command ranks the viewers of a streamer on twitch for a given time period",
+	Long: `rank command uses ttv command to fetch the chat logs of a twitch streamer,
+	processes the json files created by it and ranks the viewers of the said streamer ordered by their comment count
+	for a said time period (day/week/month/all->100days)
+	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		rateIt(cmd, args)
 		Rank(cmd, args)
@@ -43,8 +41,10 @@ func Rank(cmd *cobra.Command, args []string) {
 	wg.Wait()
 	close(userDetails)
 	for user := range userDetails {
-		fmt.Println(user.ProfileImageURL, user.DisplayName)
+		wg.Add(1)
+		go utils.CreateUserProfiles(user, &wg, profilesOutput)
 	}
+	wg.Wait()
 }
 
 func init() {

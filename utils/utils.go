@@ -148,27 +148,34 @@ func rankByWordCount(frequencyMap map[string]CommentCount) []Pair {
 }
 
 func CreateUserProfiles(user twitchapi.TwitchUser, wg *sync.WaitGroup, targetDir string) {
+	defer wg.Done()
+
 	profileURL := user.ProfileImageURL
 	fileName := fmt.Sprintf("%s.png", user.DisplayName)
 
 	resp, err := http.Get(profileURL)
 	if err != nil {
-		fmt.Printf("Couldnt fetch %s pfp %s", user.DisplayName, err.Error())
+		fmt.Printf("Couldn't fetch %s pfp: %s\n", user.DisplayName, err.Error())
+		return
+	}
+	defer resp.Body.Close()
+
+	err = os.MkdirAll(targetDir, os.ModePerm)
+	if err != nil {
+		fmt.Printf("Couldn't create target directory %s: %s\n", targetDir, err.Error())
+		return
 	}
 
-	defer resp.Body.Close()
 	filePath := filepath.Join(targetDir, fileName)
 	file, err := os.Create(filePath)
-
 	if err != nil {
-		fmt.Printf("Couldnt create %s in target dir %s\n%s", fileName, targetDir, err.Error())
+		fmt.Printf("Couldn't create %s in target dir %s: %s\n", fileName, targetDir, err.Error())
+		return
 	}
-
 	defer file.Close()
 
 	_, err = io.Copy(file, resp.Body)
-
 	if err != nil {
-		fmt.Printf("Error copying image buffer into the destination file %s", err.Error())
+		fmt.Printf("Error copying image buffer into the destination file: %s\n", err.Error())
 	}
 }

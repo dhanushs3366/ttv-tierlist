@@ -95,10 +95,11 @@ func Test(temp *VodComments) {
 	fmt.Printf("Total\nvips: %d\tmods: %d\t subs: %d\n", vipCount, modCount, subCount)
 }
 
-func Temp() {
+func RankViewers(rankLimit uint) []Pair {
 	jsonFiles, err := getJSONFiles("./output")
 	if err != nil {
 		color.Red("there are no json files")
+		return nil
 	}
 	var wg sync.WaitGroup
 	for _, jsonFile := range jsonFiles {
@@ -107,7 +108,6 @@ func Temp() {
 	}
 
 	wg.Wait()
-	Test(&totalComments)
 
 	frequencyMap := make(map[string]CommentCount)
 
@@ -126,7 +126,7 @@ func Temp() {
 
 	sortedCmtByCount := rankByWordCount(frequencyMap)
 
-	fmt.Println(sortedCmtByCount[:50])
+	return sortedCmtByCount[:rankLimit]
 }
 
 func readJSONComments(path string, wg *sync.WaitGroup) {

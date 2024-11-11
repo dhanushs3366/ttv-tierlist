@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 )
 
 type TwitchApi struct {
@@ -198,6 +199,33 @@ func (t *TwitchApi) GetUserID(username string) (string, error) {
 	return TwitchUser.Data[0].ID, nil
 }
 
-func (t *TwitchApi) GetViewersChat(vodID string) {
+func (t *TwitchApi) GetUserDetails(userID string, userChannel chan TwitchUser, wg *sync.WaitGroup) {
+	defer wg.Done()
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/users?id=%s", t.EndPoint, userID), nil)
+	if err != nil {
+		fmt.Printf("Error creating a GET req %s\n", err.Error())
+		return
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", t.authToken))
+	req.Header.Set("Client-Id", t.clienID)
+	resp, err := t.client.Do(req)
+	if err != nil {
+		fmt.Printf("Error executing the GET req %s\n", err.Error())
+		return
+	}
 
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("Error reading the response body %s\n", err.Error())
+		return
+	}
+	var userDetail TwitchResponse[TwitchUser]
+	err = json.Unmarshal(body, &userDetail)
+	if err != nil {
+		fmt.Printf("Error unmarshalling the body %s\n", err.Error())
+		return
+	}
+
+	userChannel <- userDetail.Data[0]
 }
